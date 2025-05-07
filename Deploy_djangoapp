@@ -1,0 +1,76 @@
+#!/bin/bash
+
+<<task
+Deploy Django app using
+shell script and
+handle errors
+task
+
+
+git_code_clone(){
+        echo "Cloning the Django app from Git ........"
+        if [ -d "django-notes-app"]; then
+                echo "The code directory already exists ."
+        else
+                git clone https://github.com/LondheShubham153/django-notes-app.git || {
+                        echo "Failed to Clone ........"
+                        return 1
+                }
+        fi
+}
+
+install_requirement(){
+        echo "Installing dependencies....."
+        sudo apt-get update && sudo apt-get install -y docker.io nginx docker-compose ||{
+                echo "failed To Instll dependencies."
+                return 1
+        }
+}
+
+
+requriment_to_restart () {
+        echo "restarts................."
+        sudo chown "$USER":"$USER" /var/run/docker.sock ||{
+                echo "Failed to change ownership of docker.sock."
+                return 1
+        }
+        sudo systemctl enable docker
+        sudo systemctl enable nginx
+        sudo systemctl restart docker
+}
+
+
+deploy(){
+        echo "BUILDING AND DEPLOYING THE DJANGO APP...."
+        docker build -t notes-app . && docker-compose up -d ||{
+                echo "Failed to build and deploy the app."
+                return 1
+        }
+}
+
+
+echo "********** DEPLOYMENT STARTED *********"
+
+
+if ! git_code_clone; then
+    cd django-notes-app || exit 1
+fi
+
+
+if ! install_requirement; then
+    exit 1
+fi
+
+
+if ! requriment_to_restart; then
+    exit 1
+fi
+
+if ! deploy; then
+    echo "Deployment failed. Mailing the admin..."
+    exit 1
+fi
+
+echo "********** DEPLOYMENT DONE *********"
+                                                             
+                                            
